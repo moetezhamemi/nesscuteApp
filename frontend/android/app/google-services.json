@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "758288712836",
+    "project_id": "nesscute-4b8bf",
+    "storage_bucket": "nesscute-4b8bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:758288712836:android:3b64ea0364789c3b506ed1",
+        "android_client_info": {
+          "package_name": "com.example.nesscute_restaurant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5qyq368aKaS4nRoiT90Ku0nB4SBlmwEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
