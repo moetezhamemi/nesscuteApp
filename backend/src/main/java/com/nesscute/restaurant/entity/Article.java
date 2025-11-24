@@ -69,7 +69,6 @@ public class Article {
     }
 
     public enum ArticleType {
-        SUCRE, SALE, BURGER, SANDWICH, BOISSON, DESSERT
+        SUCRE, SALE, BURGER, SANDWICH, BOISSON, DESSERT, PIZZA
     }
 }
-

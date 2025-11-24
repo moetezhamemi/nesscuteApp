@@ -104,18 +104,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       }
       
       // Upload l'image vers le serveur
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          _selectedImage!.path,
-          filename: _selectedImage!.path.split('/').last,
-        ),
-      });
-      
-      final response = await apiService.uploadImage(formData);
-      final url = response['url'] as String?;
+      // Upload l'image vers le serveur
+      final url = await apiService.uploadImageFile(_selectedImage!);
       
       // Construire l'URL complète
-      if (url != null && url.startsWith('/')) {
+      if (url.startsWith('/')) {
         return '${AppConfig.baseUrlWithoutApi}$url';
       }
       return url;

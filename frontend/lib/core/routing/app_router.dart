@@ -5,6 +5,7 @@ import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/admin/presentation/pages/article_management_page.dart';
 import '../../features/admin/presentation/pages/assistant_management_page.dart';
+import '../../features/admin/presentation/pages/order_management_page.dart';
 import '../../features/assistant/presentation/pages/assistant_orders_page.dart';
 import '../../features/client/presentation/pages/client_home_page.dart';
 import '../../features/client/presentation/pages/article_detail_page.dart';
@@ -21,6 +22,7 @@ class AppRouter {
   static const String adminDashboard = '/admin/dashboard';
   static const String articleManagement = '/admin/articles';
   static const String assistantManagement = '/admin/assistants';
+  static const String orderManagement = '/admin/orders';
   static const String assistantOrders = '/assistant/orders';
   static const String clientHome = '/client/home';
   static const String articleDetail = '/client/article';
@@ -44,6 +46,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ArticleManagementPage());
       case assistantManagement:
         return MaterialPageRoute(builder: (_) => const AssistantManagementPage());
+      case orderManagement:
+        return MaterialPageRoute(builder: (_) => const OrderManagementPage());
       case assistantOrders:
         return MaterialPageRoute(builder: (_) => const AssistantOrdersPage());
       case clientHome:

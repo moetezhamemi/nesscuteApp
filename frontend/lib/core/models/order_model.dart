@@ -48,17 +48,14 @@ class OrderModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id != null) 'id': id,
       'userId': userId,
-      'userName': userName,
       'status': status,
       'type': type,
       'totalPrice': totalPrice,
-      'deliveryAddress': deliveryAddress,
-      'latitude': latitude,
-      'longitude': longitude,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      if (deliveryAddress != null) 'deliveryAddress': deliveryAddress,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
       'items': items.map((i) => i.toJson()).toList(),
     };
   }

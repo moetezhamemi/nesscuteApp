@@ -21,7 +21,10 @@ public class OrderController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'ASSISTANT')")
     public ResponseEntity<List<OrderDto>> getAllOrders() {
-        return ResponseEntity.ok(orderService.getAllOrders());
+        System.out.println("getAllOrders endpoint called");
+        List<OrderDto> orders = orderService.getAllOrders();
+        System.out.println("Returning " + orders.size() + " orders");
+        return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/user/{userId}")
@@ -62,4 +65,3 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 }
-

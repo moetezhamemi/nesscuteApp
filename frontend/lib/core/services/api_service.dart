@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:io';
 import '../config/app_config.dart';
 import '../models/user_model.dart';
 import '../models/article_model.dart';
@@ -75,6 +76,20 @@ class ApiService {
         .toList();
   }
 
+  Future<ArticleModel> createArticle(ArticleModel article) async {
+    final response = await _dio.post('/articles', data: article.toJson());
+    return ArticleModel.fromJson(response.data);
+  }
+
+  Future<ArticleModel> updateArticle(int id, ArticleModel article) async {
+    final response = await _dio.put('/articles/$id', data: article.toJson());
+    return ArticleModel.fromJson(response.data);
+  }
+
+  Future<void> deleteArticle(int id) async {
+    await _dio.delete('/articles/$id');
+  }
+
   // Orders
   Future<List<OrderModel>> getOrders() async {
     final response = await _dio.get('/orders');
@@ -100,12 +115,36 @@ class ApiService {
     return OrderModel.fromJson(response.data);
   }
 
+  Future<void> deleteOrder(int orderId) async {
+    await _dio.delete('/orders/$orderId');
+  }
+
+  Future<List<OrderModel>> getOrdersByStatus(String status) async {
+    final response = await _dio.get('/orders/status/$status');
+    return (response.data as List)
+        .map((json) => OrderModel.fromJson(json))
+        .toList();
+  }
+
   // Rating
   Future<void> addRating(int articleId, int userId, int rating) async {
-    await _dio.post('/articles/$articleId/rating', queryParameters: {
-      'userId': userId,
-      'rating': rating,
-    });
+    try {
+      await _dio.post('/articles/$articleId/rating', queryParameters: {
+        'userId': userId,
+        'rating': rating,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<int> getUserRating(int articleId, int userId) async {
+    try {
+      final response = await _dio.get('/articles/$articleId/rating/user/$userId');
+      return response.data['rating'] as int;
+    } catch (e) {
+      return 0;
+    }
   }
 
   // Comments
@@ -150,10 +189,35 @@ class ApiService {
     });
   }
 
+  Future<List<UserModel>> getUsersByRole(String role) async {
+    final response = await _dio.get('/users/role/$role');
+    return (response.data as List)
+        .map((json) => UserModel.fromJson(json))
+        .toList();
+  }
+
+  Future<void> deleteUser(int id) async {
+    await _dio.delete('/users/$id');
+  }
+
+  Future<void> resetPassword(int id, String newPassword) async {
+    try {
+      await _dio.put(
+        '/users/$id/reset-password',
+        data: {'newPassword': newPassword},
+      );
+    } catch (e) {
+      throw Exception('Erreur lors de la réinitialisation du mot de passe: $e');
+    }
+  }
+
   // File Upload
-  Future<Map<String, dynamic>> uploadImage(FormData formData) async {
+  Future<String> uploadImageFile(File file) async {
+    String fileName = file.path.split('/').last;
+    FormData formData = FormData.fromMap({
+      "file": await MultipartFile.fromFile(file.path, filename: fileName),
+    });
     final response = await _dio.post('/files/upload', data: formData);
-    return response.data;
+    return response.data['url'];
   }
 }
-

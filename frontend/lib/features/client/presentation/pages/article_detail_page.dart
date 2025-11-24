@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/models/article_model.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/cart_provider.dart';
 
 class ArticleDetailPage extends ConsumerStatefulWidget {
   final int? articleId;
@@ -20,6 +23,7 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
   ArticleModel? _article;
   bool _isLoading = true;
   double _userRating = 0;
+  int _quantity = 1;
   final TextEditingController _commentController = TextEditingController();
 
   @override
@@ -38,13 +42,33 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
     if (widget.articleId == null) return;
 
     try {
+      final token = ref.read(authProvider).token;
+      final userId = ref.read(authProvider).user?.id;
+      _apiService.setToken(token);
+      
       final article = await _apiService.getArticleById(widget.articleId!);
-      setState(() {
-        _article = article;
-        _isLoading = false;
-      });
+      
+      // Load user's rating if logged in
+      if (userId != null) {
+        final userRating = await _apiService.getUserRating(widget.articleId!, userId);
+        setState(() {
+          _article = article;
+          _userRating = userRating.toDouble();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _article = article;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement: $e')),
+        );
+      }
     }
   }
 
@@ -54,19 +78,29 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
     if (userId == null) return;
 
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       await _apiService.addRating(widget.articleId!, userId, rating.toInt());
       _loadArticle();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Note ajoutée avec succès')),
+      );
     } catch (e) {
-      // Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 
   Future<void> _addComment() async {
     if (widget.articleId == null) return;
+    if (_commentController.text.trim().isEmpty) return;
     final userId = ref.read(authProvider).user?.id;
     if (userId == null) return;
 
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       await _apiService.addComment(
         widget.articleId!,
         userId,
@@ -74,8 +108,13 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
       );
       _commentController.clear();
       _loadArticle();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Commentaire ajouté')),
+      );
     } catch (e) {
-      // Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 
@@ -103,9 +142,16 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
           children: [
             if (_article!.imageUrl != null)
               CachedNetworkImage(
-                imageUrl: _article!.imageUrl!,
+                imageUrl: _article!.imageUrl!.startsWith('http')
+                    ? _article!.imageUrl!
+                    : '${AppConfig.baseUrlWithoutApi}${_article!.imageUrl}',
                 height: 250,
                 fit: BoxFit.cover,
+                errorWidget: (context, url, error) => Container(
+                  height: 250,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.restaurant_menu, size: 80),
+                ),
               ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -214,12 +260,81 @@ class _ArticleDetailPageState extends ConsumerState<ArticleDetailPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Add to cart
-        },
-        icon: const Icon(Icons.shopping_cart),
-        label: const Text('Ajouter au panier'),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () {
+                      if (_quantity > 1) {
+                        setState(() => _quantity--);
+                      }
+                    },
+                  ),
+                  Text(
+                    '$_quantity',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      setState(() => _quantity++);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (_article != null) {
+                    for (int i = 0; i < _quantity; i++) {
+                      ref.read(cartProvider.notifier).addItem(_article!);
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$_quantity x ${_article!.name} ajouté(s) au panier'),
+                        action: SnackBarAction(
+                          label: 'Voir panier',
+                          onPressed: () => Navigator.pushNamed(context, AppRouter.cart),
+                        ),
+                      ),
+                    );
+                    setState(() => _quantity = 1);
+                  }
+                },
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text('Ajouter au panier'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

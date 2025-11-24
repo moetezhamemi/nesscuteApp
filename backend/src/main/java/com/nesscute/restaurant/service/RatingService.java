@@ -49,5 +49,9 @@ public class RatingService {
 
         return rating;
     }
-}
 
+    public Rating getUserRating(Long articleId, Long userId) {
+        return ratingRepository.findByArticleIdAndUserId(articleId, userId)
+                .orElse(null);
+    }
+}

@@ -48,6 +48,15 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> resetPassword(
+            @PathVariable Long id,
+            @RequestBody PasswordResetRequest request) {
+        userService.resetPassword(id, request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
@@ -59,8 +68,24 @@ public class UserController {
         private String oldPassword;
         private String newPassword;
 
-        public String getOldPassword() { return oldPassword; }
-        public String getNewPassword() { return newPassword; }
+        public String getOldPassword() {
+            return oldPassword;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+    }
+
+    private static class PasswordResetRequest {
+        private String newPassword;
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
     }
 }
-

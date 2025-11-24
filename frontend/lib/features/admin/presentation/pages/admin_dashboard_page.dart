@@ -25,13 +25,15 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
   Future<void> _loadStats() async {
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       final articles = await _apiService.getArticles();
       final orders = await _apiService.getOrders();
-      // Load assistants count
+      final assistants = await _apiService.getUsersByRole('ASSISTANT');
       setState(() {
         _articleCount = articles.length;
         _orderCount = orders.length;
-        _assistantCount = 0; // TODO: Implement assistant count
+        _assistantCount = assistants.length;
       });
     } catch (e) {
       // Handle error
@@ -67,7 +69,10 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             _articleCount.toString(),
             Icons.restaurant_menu,
             Colors.orange,
-            () => Navigator.pushNamed(context, AppRouter.articleManagement),
+            () async {
+              await Navigator.pushNamed(context, AppRouter.articleManagement);
+              _loadStats();
+            },
           ),
           _buildStatCard(
             context,
@@ -75,7 +80,10 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             _assistantCount.toString(),
             Icons.people,
             Colors.blue,
-            () => Navigator.pushNamed(context, AppRouter.assistantManagement),
+            () async {
+              await Navigator.pushNamed(context, AppRouter.assistantManagement);
+              _loadStats();
+            },
           ),
           _buildStatCard(
             context,
@@ -83,7 +91,10 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             _orderCount.toString(),
             Icons.shopping_cart,
             Colors.green,
-            () {},
+            () async {
+              await Navigator.pushNamed(context, AppRouter.orderManagement);
+              _loadStats();
+            },
           ),
         ],
       ),

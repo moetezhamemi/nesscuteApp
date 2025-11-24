@@ -15,7 +15,8 @@ class AssistantOrdersPage extends ConsumerStatefulWidget {
 class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
   final ApiService _apiService = ApiService();
   List<OrderModel> _orders = [];
-  String _selectedStatus = 'EN_ATTENTE';
+  // null means no filter (show all)
+  String? _selectedStatus;
   bool _isLoading = true;
 
   @override
@@ -25,7 +26,10 @@ class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
   }
 
   Future<void> _loadOrders() async {
+    setState(() => _isLoading = true);
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       final orders = await _apiService.getOrders();
       setState(() {
         _orders = orders;
@@ -33,13 +37,25 @@ class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement: $e')),
+        );
+      }
     }
   }
 
   Future<void> _updateOrderStatus(int orderId, String status) async {
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       await _apiService.updateOrderStatus(orderId, status);
-      _loadOrders();
+      await _loadOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Statut mis à jour')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +67,10 @@ class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredOrders = _orders.where((o) => o.status == _selectedStatus).toList();
+    // Apply filter if a status is selected
+    final filteredOrders = _selectedStatus == null
+        ? _orders
+        : _orders.where((o) => o.status == _selectedStatus).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -117,38 +136,28 @@ class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.check, color: Colors.green),
-                                          onPressed: () {
-                                            _updateOrderStatus(order.id!, 'ACCEPTEE');
-                                          },
+                                          onPressed: () => _updateOrderStatus(order.id!, 'ACCEPTEE'),
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.close, color: Colors.red),
-                                          onPressed: () {
-                                            _updateOrderStatus(order.id!, 'REFUSEE');
-                                          },
+                                          onPressed: () => _updateOrderStatus(order.id!, 'REFUSEE'),
                                         ),
                                       ],
                                     ),
                                   if (order.status == 'ACCEPTEE')
                                     IconButton(
                                       icon: const Icon(Icons.restaurant),
-                                      onPressed: () {
-                                        _updateOrderStatus(order.id!, 'EN_PREPARATION');
-                                      },
+                                      onPressed: () => _updateOrderStatus(order.id!, 'EN_PREPARATION'),
                                     ),
                                   if (order.status == 'EN_PREPARATION')
                                     IconButton(
                                       icon: const Icon(Icons.delivery_dining),
-                                      onPressed: () {
-                                        _updateOrderStatus(order.id!, 'EN_LIVRAISON');
-                                      },
+                                      onPressed: () => _updateOrderStatus(order.id!, 'EN_LIVRAISON'),
                                     ),
                                   if (order.status == 'EN_LIVRAISON')
                                     IconButton(
                                       icon: const Icon(Icons.check_circle),
-                                      onPressed: () {
-                                        _updateOrderStatus(order.id!, 'LIVREE');
-                                      },
+                                      onPressed: () => _updateOrderStatus(order.id!, 'LIVREE'),
                                     ),
                                 ],
                               ),
@@ -169,10 +178,9 @@ class _AssistantOrdersPageState extends ConsumerState<AssistantOrdersPage> {
       selected: isSelected,
       onSelected: (selected) {
         setState(() {
-          _selectedStatus = status;
+          _selectedStatus = selected ? status : null;
         });
       },
     );
   }
 }
-

@@ -76,6 +76,15 @@ public class UserService {
     }
 
     @Transactional
+    public void resetPassword(Long id, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new RuntimeException("User not found");
@@ -94,4 +103,3 @@ public class UserService {
                 .build();
     }
 }
-

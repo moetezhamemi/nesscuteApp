@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/models/article_model.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/providers/auth_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ClientHomePage extends ConsumerStatefulWidget {
   const ClientHomePage({super.key});
@@ -36,6 +37,8 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
 
   Future<void> _loadArticles() async {
     try {
+      final token = ref.read(authProvider).token;
+      _apiService.setToken(token);
       final articles = await _apiService.getArticles();
       setState(() {
         _articles = articles;
@@ -44,6 +47,11 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement: $e')),
+        );
+      }
     }
   }
 
@@ -122,6 +130,8 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
                 _buildTypeChip('SUCRE', 'Sucré'),
                 const SizedBox(width: 8),
                 _buildTypeChip('SALE', 'Salé'),
+                const SizedBox(width: 8),
+                _buildTypeChip('PIZZA', 'Pizzas'),
               ],
             ),
           ),
@@ -175,8 +185,14 @@ class _ClientHomePageState extends ConsumerState<ClientHomePage> {
             Expanded(
               child: article.imageUrl != null
                   ? CachedNetworkImage(
-                      imageUrl: article.imageUrl!,
+                      imageUrl: article.imageUrl!.startsWith('http')
+                          ? article.imageUrl!
+                          : '${AppConfig.baseUrlWithoutApi}${article.imageUrl}',
                       fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.restaurant_menu, size: 50),
+                      ),
                     )
                   : Container(
                       color: Colors.grey[300],
